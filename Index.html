@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="WordFlash">
+<title>WordFlash</title>
+<style>
+:root {
+  --bg:#fafafa; --surface:#ffffff; --surface2:#f4f4f5;
+  --accent:#5b54e8; --accent-soft:#eeedfc;
+  --easy:#16a34a; --hard:#ea580c; --unknown:#dc2626;
+  --text:#18181b; --muted:#71717a; --border:#e4e4e7;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;
+  font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased}
+#app{position:relative;min-height:100vh}
+.screen{display:none;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto}
+.screen.active{display:flex}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;
+  background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.app-logo{font-size:20px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+.app-logo span{color:var(--accent)}
+.screens-wrap{padding-bottom:76px}
+
+/* HOME */
+.home-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:28px;padding:36px 24px}
+.hero-title{font-size:clamp(30px,8vw,40px);line-height:1.1;font-weight:700;letter-spacing:-1px;color:var(--text)}
+.hero-sub{color:var(--muted);font-size:15px;line-height:1.5;max-width:300px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 10px;text-align:center}
+.stat-num{font-size:30px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-1px}
+.stat-label{font-size:11px;color:var(--muted);margin-top:6px}
+.due-banner{background:var(--accent-soft);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;width:100%;text-align:left}
+.due-icon{font-size:28px}
+.due-text h3{font-size:16px;font-weight:600;color:var(--text)}
+.due-text p{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* BUTTONS */
+.btn-primary{background:var(--accent);border:none;color:white;padding:16px 32px;border-radius:14px;
+  font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;transition:opacity .2s}
+.btn-primary:active{opacity:.85}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  padding:14px 24px;border-radius:12px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;width:100%;transition:all .2s}
+.btn-secondary:active{background:var(--surface2)}
+
+/* CARD */
+.card-screen{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:20px;gap:20px}
+.card-progress{display:flex;align-items:center;gap:12px}
+.progress-bar{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);transition:width .4s;border-radius:2px}
+.progress-label{font-size:13px;color:var(--muted);white-space:nowrap}
+.card-scene{flex:1;perspective:1200px;display:flex;align-items:center;justify-content:center;min-height:280px}
+.card-inner{width:100%;max-width:380px;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1);cursor:pointer}
+.card-inner.flipped{transform:rotateY(180deg)}
+.card-face{width:100%;min-height:260px;background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 28px;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card-back{position:absolute;top:0;left:0;transform:rotateY(180deg);background:var(--accent-soft);border-color:transparent}
+.card-lang{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.card-word{font-size:clamp(20px,5vw,28px);line-height:1.3;color:var(--text);margin-bottom:14px;font-weight:600;letter-spacing:-.5px}
+.card-back .card-word{color:var(--accent)}
+.tap-hint{margin-top:22px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tap-hint::before{content:'↕';font-style:normal}
+.card-dots{display:flex;gap:6px;margin-top:14px;justify-content:center}
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--border);transition:all .3s}
+.dot.filled{background:var(--accent);border-color:var(--accent)}
+.dot.filled-gold{background:var(--easy);border-color:var(--easy)}
+.answer-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.answer-btn{padding:14px 8px;border-radius:14px;border:1.5px solid;font-family:inherit;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface)}
+.answer-btn .btn-icon{font-size:20px}
+.answer-btn .btn-next{font-size:10px;color:var(--muted);font-weight:400}
+.btn-easy{border-color:var(--easy);color:var(--easy)}
+.btn-easy:active{background:#f0fdf4}
+.btn-hard{border-color:var(--hard);color:var(--hard)}
+.btn-hard:active{background:#fff7ed}
+.btn-unknown{border-color:var(--unknown);color:var(--unknown)}
+.btn-unknown:active{background:#fef2f2}
+.show-answer-wrap{display:flex;justify-content:center}
+.btn-show{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  padding:14px 48px;border-radius:50px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s}
+.btn-show:active{background:var(--surface2)}
+.session-done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px;padding:40px 24px}
+.done-emoji{font-size:64px}
+.done-title{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.done-sub{color:var(--muted);font-size:15px;line-height:1.5}
+
+/* SETTINGS */
+.settings-body{flex:1;padding:20px;display:flex;flex-direction:column;gap:22px;overflow-y:auto}
+.section-label{font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
+.setting-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setting-info h4{font-size:15px;font-weight:600}
+.setting-info p{font-size:12px;color:var(--muted);margin-top:2px}
+.toggle{width:48px;height:28px;background:var(--border);border-radius:14px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:24px;height:24px;background:white;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(20px)}
+.upload-area{border:2px dashed var(--border);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-area:active,.upload-area.drag{border-color:var(--accent);background:var(--accent-soft)}
+.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:30px;margin-bottom:8px}
+.upload-text{font-size:14px;color:var(--muted)}
+.upload-text strong{color:var(--accent)}
+.upload-format{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.notif-times{display:flex;flex-wrap:wrap;gap:8px}
+.time-chip{background:var(--surface2);color:var(--muted);padding:6px 12px;border-radius:20px;font-size:13px}
+.time-chip.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+
+/* LISTS */
+.lists-container{display:flex;flex-direction:column;gap:10px}
+.list-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.list-card.active-list{border-color:var(--accent)}
+.list-header{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.list-icon{font-size:18px;flex-shrink:0}
+.list-info{flex:1;min-width:0}
+.list-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.list-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.list-toggle{width:40px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.list-toggle.on{background:var(--accent)}
+.list-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.list-toggle.on::after{transform:translateX(16px)}
+.list-expand-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;line-height:1;transition:transform .2s}
+.list-expand-btn.open{transform:rotate(180deg)}
+.list-delete-btn{background:none;border:1px solid var(--border);color:var(--unknown);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.list-delete-btn:active{background:#fef2f2}
+.list-words{display:none;border-top:1px solid var(--border);max-height:260px;overflow-y:auto}
+.list-words.open{display:block}
+.list-word-item{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;font-size:13px;border-bottom:1px solid var(--surface2)}
+.list-word-item:last-child{border-bottom:none}
+.lw-ru{color:var(--text)}
+.lw-en{color:var(--accent);text-align:right;flex:1;margin-left:12px}
+.lw-badge{font-size:10px;padding:2px 7px;border-radius:10px;margin-left:8px;flex-shrink:0;font-weight:500}
+.badge-new{background:var(--accent-soft);color:var(--accent)}
+.badge-learning{background:#fff7ed;color:var(--hard)}
+.badge-learned{background:#f0fdf4;color:var(--easy)}
+.empty-state{text-align:center;padding:32px 20px;color:var(--muted)}
+.empty-state .icon{font-size:36px;margin-bottom:10px}
+.empty-state p{font-size:14px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:26px 22px 38px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.open .modal-box{transform:translateY(0)}
+.modal-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.modal-btns{display:flex;gap:10px;margin-top:18px}
+.btn-danger{background:var(--unknown);border:none;color:white;padding:14px 24px;border-radius:12px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;flex:1;transition:opacity .2s}
+.btn-danger:active{opacity:.85}
+.btn-cancel{background:var(--surface2);border:none;color:var(--text);padding:14px 24px;border-radius:12px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;flex:1}
+.modal-list-preview{background:var(--surface2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.7;max-height:120px;overflow-y:auto;white-space:pre-line}
+
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:100}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:inherit;font-size:10px;padding:4px 20px;transition:color .2s}
+.tab-btn.active{color:var(--accent)}
+.tab-icon{font-size:20px}
+
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:white;border-radius:10px;padding:12px 18px;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:999;max-width:90vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<nav class="bottom-nav">
+  <button class="tab-btn active" onclick="showTab('home')" id="tab-home"><span class="tab-icon">🏠</span>Главная</button>
+  <button class="tab-btn" onclick="showTab('study')" id="tab-study"><span class="tab-icon">🃏</span>Карточки</button>
+  <button class="tab-btn" onclick="showTab('settings')" id="tab-settings"><span class="tab-icon">📚</span>Списки</button>
+</nav>
+
+<div class="screens-wrap">
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="app-header">
+    <div class="app-logo">Word<span>Flash</span></div>
+    <div id="notif-status" class="tab-btn" style="padding:6px 12px;border:1px solid var(--border);border-radius:20px;font-size:13px;flex-direction:row;gap:6px" onclick="toggleNotifications()">🔔 Уведомления</div>
+  </div>
+  <div class="home-hero">
+    <div>
+      <div class="hero-title">Учи слова каждый день</div>
+      <div class="hero-sub" style="margin-top:10px">Карточки по системе Эббингауза — слова запоминаются навсегда</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Всего слов</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-due">0</div><div class="stat-label">На сегодня</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-learned">0</div><div class="stat-label">Выучено</div></div>
+    </div>
+    <div class="due-banner">
+      <div class="due-icon">⚡</div>
+      <div class="due-text">
+        <h3 id="due-banner-title">Загрузи слова</h3>
+        <p id="due-banner-sub">Перейди в Списки и загрузи TXT файл</p>
+      </div>
+    </div>
+    <button class="btn-primary" id="start-btn" onclick="startSession()">Начать повторение</button>
+  </div>
+</div>
+
+<!-- STUDY -->
+<div class="screen" id="screen-study">
+  <div id="card-view" class="card-screen">
+    <div class="card-progress">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="progress-label">0 / 0</div>
+    </div>
+    <div class="card-scene" onclick="flipCard()">
+      <div class="card-inner" id="card-inner">
+        <div class="card-face card-front">
+          <div class="card-lang" id="front-lang">РУССКИЙ</div>
+          <div class="card-word" id="front-word">—</div>
+          <div class="card-dots" id="front-dots"></div>
+          <div class="tap-hint">нажми чтобы перевернуть</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-lang" id="back-lang">ENGLISH</div>
+          <div class="card-word" id="back-word">—</div>
+          <div class="card-dots" id="back-dots"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="show-answer-wrap" id="show-answer-wrap">
+        <button class="btn-show" onclick="revealAnswer()">Показать ответ</button>
+      </div>
+      <div class="answer-btns" id="answer-btns" style="display:none">
+        <button class="answer-btn btn-unknown" onclick="rateCard('unknown')"><span class="btn-icon">✕</span>Не знаю<span class="btn-next">завтра</span></button>
+        <button class="answer-btn btn-hard" onclick="rateCard('hard')"><span class="btn-icon">~</span>Сложно<span class="btn-next">3 дня</span></button>
+        <button class="answer-btn btn-easy" onclick="rateCard('easy')"><span class="btn-icon">✓</span>Легко<span class="btn-next">7 дней</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="session-done" class="session-done" style="display:none">
+    <div class="done-emoji" id="done-emoji">🎉</div>
+    <div class="done-title" id="done-title">Сессия завершена</div>
+    <div class="done-sub" id="done-sub">Отличная работа!</div>
+    <button class="btn-primary" onclick="showTab('home')">На главную</button>
+  </div>
+</div>
+
+<!-- LISTS -->
+<div class="screen" id="screen-settings">
+  <div class="app-header">
+    <div class="app-logo">Word<span>Flash</span></div>
+    <div id="total-label" style="font-size:13px;color:var(--muted)">0 слов</div>
+  </div>
+  <div class="settings-body">
+    <div>
+      <div class="section-label">Добавить новый список</div>
+      <div class="setting-card">
+        <div class="upload-area" id="upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <input type="file" accept=".txt" onchange="handleFile(this.files[0],this)">
+          <div class="upload-icon">📄</div>
+          <div class="upload-text">Нажми или перетащи <strong>TXT файл</strong></div>
+          <div class="upload-format">Формат: русское слово - english word<br>Каждая пара на новой строке</div>
+        </div>
+        <button class="btn-secondary" style="font-size:14px;padding:12px" onclick="addManualList()">Создать список вручную</button>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">Мои списки</div>
+      <div id="lists-container" class="lists-container"></div>
+    </div>
+    <div>
+      <div class="section-label">Уведомления</div>
+      <div class="setting-card">
+        <div class="setting-row">
+          <div class="setting-info"><h4>Push-уведомления</h4><p>Каждые 2 часа с 9:00 до 19:00</p></div>
+          <div class="toggle" id="notif-toggle" onclick="toggleNotifications()"></div>
+        </div>
+        <div class="notif-times" id="notif-times">
+          <div class="time-chip" data-h="9">9:00</div><div class="time-chip" data-h="11">11:00</div>
+          <div class="time-chip" data-h="13">13:00</div><div class="time-chip" data-h="15">15:00</div>
+          <div class="time-chip" data-h="17">17:00</div><div class="time-chip" data-h="19">19:00</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Для постоянной работы установи на экран домой: Поделиться → На экран домой</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens-wrap -->
+</div><!-- /app -->
+
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal-box">
+    <div class="modal-title">Удалить список?</div>
+    <div class="modal-sub" id="modal-sub">Это действие нельзя отменить.</div>
+    <div class="modal-list-preview" id="modal-preview"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-danger" onclick="confirmDelete()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// Global safety net: prevent any uncaught error from surfacing in the debug console
+window.addEventListener('error', function(e){ e.preventDefault(); return true; });
+window.addEventListener('unhandledrejection', function(e){ e.preventDefault(); });
+
+const LEARNED_THRESHOLD=5, LEARNED_INTERVAL=21, SESSION_SIZE=20;
+const INTERVALS={unknown:1,hard:3,easy:7};
+let lists=[], session=[], sessionIdx=0, cardFlipped=false, deleteTargetId=null;
+
+// Safe storage: falls back to in-memory if localStorage is blocked (iOS private mode / web-view)
+const memStore={};
+function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return memStore[k]!==undefined?memStore[k]:null; } }
+function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ memStore[k]=v; } }
+
+function save(){ try{ storeSet('wf_lists',JSON.stringify(lists)); }catch(e){} }
+function load(){
+  try{
+    const d=storeGet('wf_lists');
+    if(d) lists=JSON.parse(d);
+    const old=storeGet('wf_words');
+    if(old && lists.length===0){
+      const ws=JSON.parse(old);
+      if(ws.length){ lists.push({id:uid(),name:'Мои слова',enabled:true,words:ws}); save(); }
+    }
+  }catch(e){ lists=[]; }
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function init(){
+  try{
+    load();
+    if(lists.length===0) addDemoList();
+    updateHome();
+    const dm=document.getElementById('delete-modal');
+    if(dm) dm.addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+  }catch(e){ /* never surface a script error to the user */ }
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else init();
+
+function showTab(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='home') updateHome();
+  if(tab==='settings') renderLists();
+  if(tab==='study'){
+    buildSession();
+    if(session.length===0) showSessionDone(true);
+    else { showCardView(); renderCard(); }
+  }
+}
+
+function allActiveWords(){ return lists.filter(l=>l.enabled).flatMap(l=>l.words); }
+
+function updateHome(){
+  const all=allActiveWords();
+  const total=all.length, learned=all.filter(w=>w.learned).length, due=getDueWords().length;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-due').textContent=due;
+  document.getElementById('stat-learned').textContent=learned;
+  document.getElementById('total-label').textContent=total+' слов';
+  const title=document.getElementById('due-banner-title'), sub=document.getElementById('due-banner-sub'), btn=document.getElementById('start-btn');
+  if(total===0){ title.textContent='Загрузи слова'; sub.textContent='Перейди в Списки и загрузи TXT файл'; btn.disabled=true; }
+  else if(due===0){ title.textContent='На сегодня всё готово'; sub.textContent='Возвращайся завтра за новой порцией'; btn.disabled=true; }
+  else { const n=Math.min(due,SESSION_SIZE); title.textContent=`${n} карточк${pluralRu(n,'а','и','')} в этой сессии`; sub.textContent=due>SESSION_SIZE?`Всего ${due} на сегодня · по 20 за раз`:getMotivation(); btn.disabled=false; }
+}
+function pluralRu(n,one,few,many){ if(n%10===1&&n%100!==11)return one; if([2,3,4].includes(n%10)&&![12,13,14].includes(n%100))return few; return many; }
+const motivations=['Не дай словам заскучать','Твой мозг ждёт','Время кормить кривую памяти','Слова сами себя не выучат','Несколько минут — и ты молодец'];
+function getMotivation(){ return motivations[Math.floor(Math.random()*motivations.length)]; }
+
+function handleDrop(e){ e.preventDefault(); document.getElementById('upload-area').classList.remove('drag'); handleFile(e.dataTransfer.files[0],null); }
+function handleFile(file,inputEl){
+  if(!file) return;
+  const name=file.name.replace(/\.txt$/i,'').replace(/_/g,' ')||'Новый список';
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    const lines=e.target.result.split('\n'), words=[];
+    lines.forEach(line=>{
+      line=line.replace(/^\s*\d+[\.\)]\s*/,'').trim();
+      if(!line||line.startsWith('#')) return;
+      const m=line.match(/^(.+?)[\-–—=\|	]+(.+)$/);
+      if(m){ const ru=m[1].trim(),en=m[2].trim(); if(ru&&en) words.push(createWord(ru,en)); }
+    });
+    if(words.length===0){ showToast('Не найдено слов. Проверь формат файла'); return; }
+    lists.push({id:uid(),name,enabled:true,words});
+    save(); renderLists(); updateHome();
+    showToast(`Список «${name}» — ${words.length} слов`);
+    if(inputEl) inputEl.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+function addManualList(){
+  const name=prompt('Название нового списка:');
+  if(!name) return;
+  lists.push({id:uid(),name:name.trim(),enabled:true,words:[]});
+  save(); renderLists();
+  showToast(`Список «${name}» создан`);
+}
+function createWord(ru,en){ return {ru,en,marks:0,nextDate:today(),interval:1,learned:false}; }
+
+function renderLists(){
+  const c=document.getElementById('lists-container');
+  document.getElementById('total-label').textContent=allActiveWords().length+' слов';
+  if(lists.length===0){ c.innerHTML='<div class="empty-state"><div class="icon">📭</div><p>Нет списков. Загрузи TXT файл выше</p></div>'; return; }
+  c.innerHTML=lists.map(list=>{
+    const total=list.words.length, learned=list.words.filter(w=>w.learned).length;
+    const due=list.words.filter(w=>!w.nextDate||w.nextDate<=today()).length;
+    return `<div class="list-card ${list.enabled?'active-list':''}">
+      <div class="list-header">
+        <div class="list-icon">${list.enabled?'📗':'📕'}</div>
+        <div class="list-info"><div class="list-name">${escHtml(list.name)}</div>
+          <div class="list-meta">${total} слов · ${learned} выучено · ${due} на сегодня</div></div>
+        <div class="list-actions">
+          <div class="list-toggle ${list.enabled?'on':''}" onclick="toggleList('${list.id}')"></div>
+          <button class="list-expand-btn" id="exp-${list.id}" onclick="toggleExpand('${list.id}')">▾</button>
+        </div>
+      </div>
+      <div class="list-words" id="lw-${list.id}">
+        <div style="padding:12px 16px;display:flex;justify-content:flex-end">
+          <button class="list-delete-btn" onclick="askDelete('${list.id}')">Удалить список</button>
+        </div>
+        ${list.words.slice(0,50).map(w=>`<div class="list-word-item">
+          <span class="lw-ru">${escHtml(w.ru)}</span><span class="lw-en">${escHtml(w.en)}</span>
+          <span class="lw-badge ${w.learned?'badge-learned':((w.marks||w.ruMarks||0)>0?'badge-learning':'badge-new')}">${w.learned?'✓':((w.marks||w.ruMarks||0)>0?'~':'new')}</span>
+        </div>`).join('')}
+        ${total>50?`<div style="padding:10px 16px;font-size:12px;color:var(--muted)">...ещё ${total-50} слов</div>`:''}
+      </div></div>`;
+  }).join('');
+}
+function toggleExpand(id){ const lw=document.getElementById('lw-'+id),btn=document.getElementById('exp-'+id); btn.classList.toggle('open',lw.classList.toggle('open')); }
+function toggleList(id){ const l=lists.find(x=>x.id===id); if(!l)return; l.enabled=!l.enabled; save(); renderLists(); updateHome(); showToast(l.enabled?`Список «${l.name}» включён`:`Список «${l.name}» выключен`); }
+
+function askDelete(id){
+  const l=lists.find(x=>x.id===id); if(!l)return;
+  deleteTargetId=id;
+  document.getElementById('modal-sub').textContent=`Список «${l.name}» содержит ${l.words.length} слов. Весь прогресс будет потерян.`;
+  document.getElementById('modal-preview').textContent=l.words.slice(0,6).map(w=>`${w.ru} — ${w.en}`).join('\n')+(l.words.length>6?`\n...ещё ${l.words.length-6}`:'');
+  document.getElementById('delete-modal').classList.add('open');
+}
+function confirmDelete(){ if(!deleteTargetId)return; const l=lists.find(x=>x.id===deleteTargetId); lists=lists.filter(x=>x.id!==deleteTargetId); deleteTargetId=null; closeModal(); save(); renderLists(); updateHome(); showToast(`Список «${l?.name}» удалён`); }
+function closeModal(){ const dm=document.getElementById('delete-modal'); if(dm) dm.classList.remove('open'); deleteTargetId=null; }
+
+function today(){ return new Date().toISOString().split('T')[0]; }
+function addDays(d,n){ const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split('T')[0]; }
+function getDueWords(){ const t=today(); return lists.filter(l=>l.enabled).flatMap(l=>l.words).filter(w=>!w.nextDate||w.nextDate<=t); }
+
+function buildSession(){
+  let due=getDueWords();
+  for(let i=due.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [due[i],due[j]]=[due[j],due[i]]; }
+  due=due.slice(0,SESSION_SIZE); // max 20 cards per session
+  // One card per word, with a randomly chosen front side (ru or en)
+  session=due.map(w=>({ word:w, frontIsRu: Math.random()>.5 }));
+  sessionIdx=0;
+}
+function startSession(){ buildSession(); showTab('study'); }
+function showCardView(){ document.getElementById('card-view').style.display='flex'; document.getElementById('session-done').style.display='none'; }
+const doneMsgs=['Кривая памяти идёт вверх','Слова закрепились','Так держать','Отличная работа'];
+function showSessionDone(empty){ document.getElementById('card-view').style.display='none'; document.getElementById('session-done').style.display='flex';
+  document.getElementById('done-emoji').textContent=empty?'😴':'🎉';
+  document.getElementById('done-title').textContent=empty?'Нечего повторять':'Сессия завершена';
+  document.getElementById('done-sub').textContent=empty?'На сегодня все слова повторены. Возвращайся завтра':doneMsgs[Math.floor(Math.random()*doneMsgs.length)]; }
+
+function renderCard(){
+  if(sessionIdx>=session.length){ showSessionDone(false); updateHome(); return; }
+  const {word,frontIsRu}=session[sessionIdx]; cardFlipped=false;
+  const marks=(word.marks!==undefined)?word.marks:(word.ruMarks||0);
+  document.getElementById('card-inner').classList.remove('flipped');
+  document.getElementById('front-lang').textContent=frontIsRu?'РУССКИЙ':'ENGLISH';
+  document.getElementById('front-word').textContent=frontIsRu?word.ru:word.en;
+  document.getElementById('back-lang').textContent=frontIsRu?'ENGLISH':'РУССКИЙ';
+  document.getElementById('back-word').textContent=frontIsRu?word.en:word.ru;
+  renderDots('front-dots',marks,word.learned);
+  renderDots('back-dots',marks,word.learned);
+  document.getElementById('progress-fill').style.width=Math.round(sessionIdx/session.length*100)+'%';
+  document.getElementById('progress-label').textContent=`${sessionIdx} / ${session.length}`;
+  document.getElementById('show-answer-wrap').style.display='flex';
+  document.getElementById('answer-btns').style.display='none';
+}
+function renderDots(id,filled,learned){ const el=document.getElementById(id); el.innerHTML='';
+  for(let i=0;i<LEARNED_THRESHOLD;i++){ const d=document.createElement('div'); d.className='dot'+(i<filled?(learned?' filled-gold':' filled'):''); el.appendChild(d); } }
+function flipCard(){ if(cardFlipped)return; cardFlipped=true; document.getElementById('card-inner').classList.add('flipped');
+  document.getElementById('show-answer-wrap').style.display='none'; document.getElementById('answer-btns').style.display='grid'; }
+function revealAnswer(){ flipCard(); }
+function rateCard(rating){
+  const {word}=session[sessionIdx];
+  if(word.marks===undefined) word.marks=(word.ruMarks||0); // migrate old data
+  if(rating==='easy') word.marks=Math.min((word.marks||0)+1,LEARNED_THRESHOLD);
+  else if(rating==='unknown') word.marks=Math.max(0,(word.marks||0)-1);
+  // 'hard' keeps marks unchanged
+  if(word.marks>=LEARNED_THRESHOLD){ word.learned=true; word.interval=LEARNED_INTERVAL; word.nextDate=addDays(today(),LEARNED_INTERVAL); showToast('Слово выучено! Повтор через 21 день'); }
+  else { word.nextDate=addDays(today(),INTERVALS[rating]); word.interval=INTERVALS[rating]; }
+  save(); sessionIdx++; setTimeout(()=>renderCard(),200);
+}
+
+let notifEnabled=false, notifTimers=[];
+const notifMsgs=['Привет! Твои слова скучают. Зайди повторить?','Кривая Эббингауза ждёт!','Слова заперты в карточках. Освободи их!','Несколько карточек — и ты молодец','Слова засыпают от скуки. Разбуди их!','Твой английский сам себя не выучит'];
+function toggleNotifications(){
+  if(!notifEnabled){
+    if(!('Notification' in window)){ showToast('Браузер не поддерживает уведомления'); return; }
+    Notification.requestPermission().then(p=>{ if(p==='granted'){ notifEnabled=true; updateNotifUI(); scheduleNotifications(); showToast('Уведомления включены'); } else showToast('Разреши уведомления в настройках браузера'); });
+  } else { notifEnabled=false; clearNotifTimers(); updateNotifUI(); showToast('Уведомления выключены'); }
+}
+function updateNotifUI(){ document.getElementById('notif-toggle').classList.toggle('on',notifEnabled);
+  document.getElementById('notif-status').textContent=notifEnabled?'🔔 Вкл':'🔕 Выкл';
+  const h=new Date().getHours(); document.querySelectorAll('.time-chip').forEach(c=>c.classList.toggle('active',notifEnabled&&parseInt(c.dataset.h)>=h)); }
+function scheduleNotifications(){ clearNotifTimers(); [9,11,13,15,17,19].forEach(h=>scheduleDaily(h)); }
+function scheduleDaily(hour){ const now=new Date(),t=new Date(); t.setHours(hour,0,0,0); if(t<=now)t.setDate(t.getDate()+1);
+  const tm=setTimeout(()=>{ if(notifEnabled&&getDueWords().length>0) new Notification('WordFlash',{body:notifMsgs[Math.floor(Math.random()*notifMsgs.length)]});
+    notifTimers.push(setTimeout(()=>scheduleDaily(hour),86400000)); },t-now); notifTimers.push(tm); }
+function clearNotifTimers(){ notifTimers.forEach(t=>clearTimeout(t)); notifTimers=[]; }
+
+let toastTimer;
+function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function addDemoList(){ const demo=[['кошка','cat'],['собака','dog'],['дом','house'],['бежать','to run'],['красивый','beautiful'],['время','time'],['работа','work'],['друг','friend'],['небо','sky'],['книга','book']];
+  lists.push({id:uid(),name:'Демо-слова',enabled:true,words:demo.map(([ru,en])=>createWord(ru,en))}); save(); }
+</script>
+</body>
+</html>
